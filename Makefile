@@ -17,6 +17,7 @@ gitlab-config: gitlab/config/gitlab.yml gitlab/config/database.yml gitlab/config
 gitlab/config/gitlab.yml:
 	sed -e "s|/home/git|${gitlab_development_root}|"\
 	 -e "s|# user: git|user: $(shell whoami)|"\
+	 -e "0,/80/s//3000/"\
 	 gitlab/config/gitlab.yml.example > gitlab/config/gitlab.yml
 
 gitlab/config/database.yml:
