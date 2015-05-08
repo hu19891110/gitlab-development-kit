@@ -1,12 +1,13 @@
 gitlab_repo = https://gitlab.com/gitlab-org/gitlab-ce.git
 gitlab_shell_repo = https://gitlab.com/gitlab-org/gitlab-shell.git
 gitlab_ci_repo = https://gitlab.com/gitlab-org/gitlab-ci.git
-gitlab_runner_repo = https://gitlab.com/gitlab-org/gitlab-ci-runner.git
 gitlab_ci_multi_runner_repo = https://gitlab.com/gitlab-org/gitlab-ci-multi-runner.git
 gitlab_development_root = $(shell pwd)
 postgres_bin_dir = $(shell pg_config --bindir)
+go_workspace = ${gitlab_development_root}/go-workspace
+gitlab_ci_multi_runner_dir = ${go_workspace}/src/gitlab.com/gitlab-ci-multi-runner
 
-all: gitlab-setup gitlab-shell-setup gitlab-ci-setup gitlab-runner-setup support-setup
+all: gitlab-setup gitlab-shell-setup gitlab-ci-setup gitlab-ci-multi-runner-setup support-setup
 
 # Set up the GitLab Rails app
 
@@ -80,20 +81,12 @@ gitlab-ci-clean:
 	rm -rf gitlab-ci
 
 # Set up gitlab-runner
-gitlab-runner-setup: gitlab-runner/.git gitlab-runner/.bundle
-
-gitlab-runner/.git:
-	git clone ${gitlab_runner_repo} gitlab-runner
-
-gitlab-runner/.bundle:
-	cd ${gitlab_development_root}/gitlab-runner && bundle install --jobs 4
-
-gitlab-runner-clean:
-	rm -rf gitlab-runner
+gitlab-ci-multi-runner-clean:
+	rm -rf "${gitlab_ci_multi_runner_dir}"
 
 # Update gitlab, gitlab-shell, gitlab-ci and gitlab-runner
 
-update: gitlab-update gitlab-shell-update gitlab-ci-update gitlab-runner-update
+update: gitlab-update gitlab-shell-update gitlab-ci-update gitlab-ci-multi-runner-update
 
 gitlab-update: gitlab/.git/pull
 	cd ${gitlab_development_root}/gitlab && \
@@ -109,8 +102,8 @@ gitlab-ci-update: gitlab-ci/.git/pull
 		bundle install --without mysql production --jobs 4 && \
 		bundle exec rake db:migrate
 
-gitlab-runner-update: gitlab-runner/.git/pull
-	cd ${gitlab_development_root}/gitlab-runner && \
+gitlab-runner-update: gitlab-ci-multi-runner/.git/pull
+	cd ${gitlab_ci_multi_runner_dir} && \
 	bundle install
 
 gitlab/.git/pull:
@@ -124,8 +117,8 @@ gitlab-ci/.git/pull:
 	cd ${gitlab_development_root}/gitlab-ci &&  git checkout -- db/schema.rb && \
 		git pull --ff-only
 
-gitlab-runner/.git/pull:
-	cd ${gitlab_development_root}/gitlab-runner && git pull --ff-only
+gitlab-ci-multi-runner/.git/pull:
+	cd ${gitlab_ci_multi_runner_dir} && git pull --ff-only
 
 # Set up supporting services
 
@@ -155,8 +148,9 @@ postgresql/data/PG_VERSION:
 .bundle:
 	bundle install --jobs 4
 
-gitlab-ci-multi-runner: go-workspace/src/gitlab.com/gitlab-ci-multi-runner/.git
-	cd go-workspace/src/gitlab.com/gitlab-ci-multi-runner && GOPATH=${gitlab_development_root}/go-workspace PATH=${gitlab_development_root}/go-workspace/bin:${PATH} make deps 
+gitlab-ci-multi-runner-setup: ${gitlab_ci_multi_runner_dir}/.git
+	cd ${gitlab_ci_multi_runner_dir} && \
+	  GOPATH=${go_workspace} PATH=${go_workspace}/bin:${PATH} make deps
 
-go-workspace/src/gitlab.com/gitlab-ci-multi-runner/.git:
-	git clone ${gitlab_ci_multi_runner_repo} go-workspace/src/gitlab.com/gitlab-ci-multi-runner
+${gitlab_ci_multi_runner_dir}/.git:
+	git clone ${gitlab_ci_multi_runner_repo} ${gitlab_ci_multi_runner_dir}
