@@ -102,9 +102,7 @@ gitlab-ci-update: gitlab-ci/.git/pull
 		bundle install --without mysql production --jobs 4 && \
 		bundle exec rake db:migrate
 
-gitlab-runner-update: gitlab-ci-multi-runner/.git/pull
-	cd ${gitlab_ci_multi_runner_dir} && \
-	bundle install
+gitlab-ci-multi-runner-update: gitlab-ci-multi-runner/.git/pull
 
 gitlab/.git/pull:
 	cd ${gitlab_development_root}/gitlab && git checkout -- db/schema.rb && \
