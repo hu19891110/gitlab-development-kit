@@ -20,3 +20,4 @@ gitlab-openldap/openldap-2.4.40/
 gitlab-openldap/sbin/
 gitlab-openldap/share/
 .vagrant/
+go-workspace/

@@ -2,6 +2,7 @@ gitlab_repo = https://gitlab.com/gitlab-org/gitlab-ce.git
 gitlab_shell_repo = https://gitlab.com/gitlab-org/gitlab-shell.git
 gitlab_ci_repo = https://gitlab.com/gitlab-org/gitlab-ci.git
 gitlab_runner_repo = https://gitlab.com/gitlab-org/gitlab-ci-runner.git
+gitlab_ci_multi_runner_repo = https://gitlab.com/gitlab-org/gitlab-ci-multi-runner.git
 gitlab_development_root = $(shell pwd)
 postgres_bin_dir = $(shell pg_config --bindir)
 
@@ -153,3 +154,9 @@ postgresql/data/PG_VERSION:
 
 .bundle:
 	bundle install --jobs 4
+
+gitlab-ci-multi-runner: go-workspace/src/gitlab.com/gitlab-ci-multi-runner/.git
+	cd go-workspace/src/gitlab.com/gitlab-ci-multi-runner && GOPATH=${gitlab_development_root}/go-workspace PATH=${gitlab_development_root}/go-workspace/bin:${PATH} make deps 
+
+go-workspace/src/gitlab.com/gitlab-ci-multi-runner/.git:
+	git clone ${gitlab_ci_multi_runner_repo} go-workspace/src/gitlab.com/gitlab-ci-multi-runner
