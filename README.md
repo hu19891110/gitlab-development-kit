@@ -164,12 +164,11 @@ To start the GitLab CI rails application:
 
 Setup the GitLab Runner:
 
-    cd gitlab-runner
-    CI_SERVER_URL=http://localhost:9000 bundle exec ./bin/setup
+    go-workspace/bin/gitlab-ci-multi-runner -u http://localhost:9000 
 
 Start the GitLab Runner:
 
-    bundle exec ./bin/runner
+    go-workspace/bin/gitlab-ci-multi-runner run
 
 To enable the OpenLDAP server, see the OpenLDAP instructions in this readme.
 
