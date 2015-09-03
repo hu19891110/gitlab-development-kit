@@ -35,5 +35,9 @@ http {
     location / {
         proxy_pass http://gitlab;
     }
+
+    location ~ [-\/\w\.]+\.git\/ {
+        proxy_pass http://gitlab-git-http-server;
+    }
   }
 }
