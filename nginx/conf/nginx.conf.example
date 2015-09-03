@@ -1,3 +1,4 @@
+pid /home/git/gitlab/tmp/pids/nginx.pid;
 worker_processes  1;
 daemon off;
 error_log stderr;
@@ -20,6 +21,8 @@ http {
   keepalive_timeout  65;
 
   #gzip  on;
+  proxy_temp_path /home/git/gitlab/tmp;
+
   upstream gitlab {
     server unix:/home/git/gitlab/tmp/sockets/gitlab.socket fail_timeout=0;
   }
