@@ -82,7 +82,7 @@ If you do not have the dependencies below you will experience strange errors dur
 1. Ruby 2.1.6 installed with a ruby version manager (RVM, ruby-build, rbenv, chruby, etc.), **DO NOT** use the system Ruby
 1. bundler, which you can install with `gem install bundler`
 
-##### OS X 10.9
+##### OS X 10.9, 10.10
 
 Please read [the prerequisites for all platforms](#prerequisites-for-all-platforms).
 
@@ -91,6 +91,16 @@ brew tap homebrew/dupes
 brew tap homebrew/versions
 brew install git redis postgresql phantomjs198 libiconv icu4c pkg-config cmake nodejs go openssl
 brew link phantomjs198
+bundle config build.nokogiri --with-iconv-dir=/usr/local/opt/libiconv
+```
+
+##### OS X 10.11
+
+```
+brew tap homebrew/dupes
+brew tap homebrew/versions
+brew install git redis postgresql libiconv icu4c pkg-config cmake nodejs go openssl node
+npm install -g phantomjs@1.9.8
 bundle config build.nokogiri --with-iconv-dir=/usr/local/opt/libiconv
 ```
 
