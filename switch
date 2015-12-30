@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require "fileutils"
+
+ROOT = File.dirname(__FILE__)
+
+where = ARGV.shift
+
+unless ["ce", "ee"].include?(where)
+  puts "argument can be 'ce' or 'ee'"
+  exit
+end
+
+unless Dir.exist?(File.join(ROOT, "repositories_#{where}"))
+  puts "You are already on it"
+  exit
+end
+
+inversed_where = where == "ce" ? "ee" : "ce"
+
+database_config_path = File.join(ROOT, "gitlab", "config", "database.yml")
+database_config = File.read(database_config_path).gsub("_#{inversed_where}", "_#{where}")
+File.write(database_config_path, database_config)
+
+FileUtils.mv(File.join(ROOT, "repositories"), File.join(ROOT, "repositories_#{inversed_where}"))
+FileUtils.mv(File.join(ROOT, "repositories_#{where}"), File.join(ROOT, "repositories"))
