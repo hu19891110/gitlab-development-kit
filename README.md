@@ -1,12 +1,12 @@
 # GitLab Development Kit
 
 The GDK runs a GitLab development environment isolated in a directory.
-This environment contains GitLab CE and Runner.
-This project uses Foreman to run dedicated Postgres and Redis processes for
+This environment contains GitLab CE, GitLab EE, GitLab Shell and GitLab
+Workhorse.
+This project uses [foreman][] to run dedicated Postgres and Redis processes for
 GitLab development. All data is stored inside the gitlab-development-kit
 directory. All connections to supporting services go through Unix domain
 sockets to avoid port conflicts.
-
 
 * [Design goals](#design-goals)
 * [Differences with production](#differences-with-production)
@@ -25,7 +25,7 @@ sockets to avoid port conflicts.
 * [Update gitlab and gitlab-shell repositories](#update-gitlab-and-gitlab-shell-repositories)
 * [OpenLDAP](#openldap)
 * [NFS](#nfs)
-* [Trobleshooting](#trobleshooting)
+* [Troubleshooting](#troubleshooting)
 * [License](#license)
 
 ## Design goals
@@ -50,7 +50,6 @@ sockets to avoid port conflicts.
 - No privilege separation between Ruby, Postgres and Redis
 - No easy upgrades
 - Need to download and compile new gems ('bundle install') on each upgrade
-- etc.
 
 ## Setup
 
@@ -131,14 +130,14 @@ sudo ln -s /usr/local/share/$PHANTOM_JS/bin/phantomjs /usr/local/bin
 phantomjs --version
 ```
 
-#### Fedora
+##### Fedora
 ```
 sudo dnf install postgresql libpqxx-devel postgresql-libs redis linicu-devel nodejs git ed cmaker rpm-build lib-pq gcc-c++ krb5-devel
 ```
 
 Install `phantomJS` manually, or download it and put in your $PATH. For instructions, follow the [Debian guide on phantomJS](#Debian).
 
-#### RedHat
+##### RedHat
 You also need to install [Go](https://golang.org/dl) because the
 Go version included in most Ubuntu versions is too old for GitLab.
 
@@ -162,9 +161,11 @@ sudo rvm use 2.1
 sudo usermod -a -G rvm <username>
 #add iptables exceptions, or sudo service stop iptables
 ```
-PhantomJS - You will want to download the required version of PhantomJS and place the binary on the path.
 
-Git 1.7.1-3 is the latest git binary for CentOS 6.5 and gitlab.  Spinach tests will fail due to a higher version requirement by gitlab.
+You will want to download the required version of PhantomJS and place the binary on the path.
+
+Git 1.7.1-3 is the latest supported version for CentOS 6.5. Spinach tests will
+fail due to a higher version requirement by GitLab.
 You can follow the instructions found [here](https://gitlab.com/gitlab-org/gitlab-recipes/tree/master/install/centos#add-puias-computational-repository)
 to install a newer binary version of git.
 
@@ -173,6 +174,7 @@ to install a newer binary version of git.
 If you got GDK running an another platform please send a merge request to add it here.
 
 #### Vagrant with Virtualbox
+
 [Vagrant](http://www.vagrantup.com) is a tool for setting up identical development
 environments including all dependencies regardless of the host platform you are using.
 Vagrant will default to using [VirtualBox](http://www.virtualbox.org), but it has
@@ -187,6 +189,7 @@ should take care to not lose the files if you destroy or update the VM.
 To avoid usage of slow VirtualBox shared folders we use NFS here.
 
 ##### Install
+
 1. [Disable Hyper-V](http://superuser.com/a/642027/143551) (Windows users) then enable virtualization technology via the BIOS.
 2. Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) & [Vagrant](http://www.vagrantup.com).
 3. [Configure NFS for Vagrant](http://docs.vagrantup.com/v2/synced-folders/nfs.html) if you are on Linux.
@@ -196,15 +199,17 @@ To avoid usage of slow VirtualBox shared folders we use NFS here.
 6. Continue setup at *[Installation](#installation)* below.
 
 ##### Development details
+
 * Open development environment by running `vagrant up` & `vagrant ssh` (from an elevated command prompt if on Windows).
 * Follow the general [development guidelines](#development) but running the commands in the `vagrant ssh` session.
 * Files in the `gitlab`, `gitlab-shell`, `gitlab-ci`, and `gitlab-runner` folders will be synced between the host OS & guest OS so can be edited on either the host (under this folder) or guest OS (under `~/gitlab-development-kit/`).
 
 ##### Exit
+
 * When you want to shutdown Vagrant run `exit` from the guest OS and then `vagrant halt`
 from the host OS.
 
-##### Troubleshooting
+##### Vagrant troubleshooting
 
 * On some setups the shared folder will have the wrong user. This is detected
 by the Vagrantfile and you should `sudo su - build` to switch to the correct user
@@ -218,6 +223,7 @@ to view any error messages.
 * If you have errors with symlinks or Ruby during initialization make sure you ran `vagrant up` from an elevated command prompt (Windows users).
 
 #### Vagrant with Docker
+
 [Vagrant](http://www.vagrantup.com) is a tool for setting up identical development
 environments including all dependencies regardless of the host platform you are using.
 [Docker](https://www.docker.com/) is one of possible providers of Vagrant.
@@ -237,11 +243,17 @@ See [development details](#development-details) and [exit](#exit) of Vagrant-Vir
 
 ## Installation
 
+GitLab development installation is based on a `Makefile` and you can install
+both CE and EE versions using the same GDK.
+
 The `Makefile` will clone the repositories, install the Gem bundles and set up
-basic configuration files. Pick one:
+basic configuration files.
+
+### Install both GitLab CE and EE
+
+To clone and setup both GitLab CE and GitLab EE in one go, run:
 
 ```
-# Clone the official repositories of gitlab and gitlab-shell
 make
 ```
 
@@ -249,46 +261,59 @@ Alternatively, you can clone straight from your forked repositories or GitLab EE
 
 ```
 # Clone your own forked repositories
-make gitlab_repo=git@gitlab.com:example/gitlab-ce.git gitlab_shell_repo=git@gitlab.com:example/gitlab-shell.git \
-  gitlab_ci_repo=git@gitlab.com:example/gitlab-ci.git gitlab_runner_repo=git@gitlab.com:example/gitlab-ci-runner.git
+make gitlab_ce_repo=git@gitlab.com:example/gitlab-ce.git gitlab_shell_repo=git@gitlab.com:example/gitlab-shell.git
 ```
+
+### Install either GitLab CE or EE
+
+If you are interested only in the development of either one of GitLab CE or EE,
+you can run:
+
+```bash
+make ce gitlab-workhorse support-setup
+```
+
+Replace `ce` with `ee` to download and install GitLab EE.
 
 ## Post-installation
 
-First install the requirements for development kit, then start Redis,
-PostgreSQL and GitLab-Workhorse by running the command below in the
-root of the gitlab-development-kit project:
+First run the commands below to install the requirements for the development
+kit, then start Redis, PostgreSQL and GitLab-Workhorse with foreman.
+In the root of the gitlab-development-kit project:
 
-    bundle install
-    bundle exec foreman start
+```bash
+bundle install
+bundle exec foreman start
+```
 
-Next, keep the above command running and install the required gems, seed the main GitLab database, and setup GitLab from a new terminal session:
+Next, keep the above command running and from a new terminal session run the
+following command to install the required gems, seed the main GitLab database
+and setup GitLab:
 
-    cd gitlab && bundle install && bundle exec rake db:create dev:setup
+```bash
+cd ce/gitlab && bundle install && bundle exec rake db:create dev:setup
+```
 
-Finally, start the main GitLab rails application in the gitlab subdirectory of the project:
+Finally, start the main GitLab Rails application while still in the `ce/gitlab/`
+subdirectory:
 
-    bundle exec foreman start -p4000
+```bash
+bundle exec foreman start -p4000
+```
 
-This will run Foreman on port 4000. Gitlab-workhorse is already running on port 3000, hence to login to GitLab you may now
-go to http://localhost:3000 in your browser. The development login credentials are `root` and `5iveL!fe`.
-
-If you want to work on GitLab CI - setup the GitLab Runner:
-
-    cd gitlab-runner
-    CI_SERVER_URL=http://localhost:3000 bundle exec ./bin/setup
-
-Start the GitLab Runner:
-
-    bundle exec ./bin/runner
+This will run Foreman on port 4000. GitLab-workhorse is already running on port
+3000, hence to login to GitLab you may now go to http://localhost:3000 in your
+browser. The development login credentials are `root` and `5iveL!fe`.
 
 To enable the OpenLDAP server, see the OpenLDAP instructions in this readme.
+
+To setup GitLab EE, replace `ce` with `ee` in the command above. See the
+GitLab EE section in this readme for more information.
 
 END Post-installation
 
 Please do not delete the 'END Post-installation' line above. It is used to
 print the post-installation message from the `Makefile`.
-
 
 ## Development
 
@@ -306,12 +331,12 @@ First start Postgres and Redis.
 bundle exec foreman start
 ```
 
-Next, start a Rails development server.
+Next, start a Rails development server for GitLab CE.
 
 ```
 # terminal window 2
-# current directory: gitlab-development-kit/gitlab
-bundle exec foreman start
+# current directory: gitlab-development-kit/ce/gitlab
+bundle exec foreman start -p4000
 ```
 
 Now you can go to http://localhost:3000 in your browser.
@@ -333,13 +358,25 @@ To run a single test file you can use:
 - `bundle exec rspec spec/controllers/commit_controller_spec.rb` for a rspec test
 - `bundle exec spinach features/project/issues/milestones.feature` for a spinach test
 
+### Switch between GitLab CE and GitLab EE
+
+In order to be able to run both GitLab CE and EE in one development kit, those
+two versions should differentiate somehow. Their data are stored in the `ce/`
+and `ee/` directories respectively. Each installation has its own repositories,
+gitlab-shell and `.ssh` directory. They talk to one single postgres instance,
+each having its own database.
+
+To run GitLab EE effectively you will need a license key. In order to obtain
+one, send an e-mail to `sales@gitlab.com` describing your purpose of
+developing on EE.
+
 ## Update gitlab and gitlab-shell repositories
 
 When working on a new feature, always check that your `gitlab` repository is up
 to date with the upstream master branch.
 
 In order to fetch the latest code, first make sure that `foreman` for
-postgres is runnning (needed for db migration) and then run:
+postgres is running (needed for db migration) and then run:
 
 ```
 make update
@@ -522,3 +559,5 @@ Please open an issue on the [GDK issue tracker](https://gitlab.com/gitlab-org/gi
 
 The GitLab Development Kit is distributed under the MIT license,
 see the LICENSE file.
+
+[foreman]: https://ddollar.github.io/foreman/
