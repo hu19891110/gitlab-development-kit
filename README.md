@@ -389,7 +389,7 @@ you don't want to use the Makefile, the steps you need to manually perform are:
 
 ### Update GitLab CE
 
-In order to fetch the latest code, first make sure that `foreman` for
+If you are developing on GitLab CE, first make sure that `foreman` for
 postgres is running (needed for db migration) and then run:
 
 ```
@@ -402,16 +402,16 @@ migrations. You can also update them separately by running
 
 ### Update GitLab EE
 
-If you are developing on GitLab EE, you can update GitLab EE and its gitlab-shell
-with:
+If you are developing on GitLab EE, first make sure that `foreman` for
+postgres is running (needed for db migration) and then run:
 
 ```bash
 make ee/update
 ```
 
-This will update both GitLab CE and `gitlab-shell` and run any possible
+This will update both GitLab EE and `gitlab-shell` and run any possible
 migrations. You can also update them separately by running
-`make ce/gitlab-update` and `make ce/gitlab-shell-update` respectively.
+`make ee/gitlab-update` and `make ee/gitlab-shell-update` respectively.
 
 ### Update gitlab-workhorse
 
