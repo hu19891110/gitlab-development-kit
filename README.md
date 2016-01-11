@@ -305,10 +305,11 @@ This will run Foreman on port 4000. GitLab-workhorse is already running on port
 3000, hence to login to GitLab you may now go to http://localhost:3000 in your
 browser. The development login credentials are `root` and `5iveL!fe`.
 
-To enable the OpenLDAP server, see the OpenLDAP instructions in this readme.
+To enable the OpenLDAP server, see the OpenLDAP instructions in this README.
 
-To setup GitLab EE, replace `ce` with `ee` in the command above. See the
-GitLab EE section in this readme for more information.
+To setup GitLab EE, replace `ce` with `ee` in the commands above. See the
+'Switch between GitLab CE and GitLab EE' section in this README for more
+information.
 
 END Post-installation
 
@@ -364,32 +365,70 @@ In order to be able to run both GitLab CE and EE in one development kit, those
 two versions should differentiate somehow. Their data are stored in the `ce/`
 and `ee/` directories respectively. Each installation has its own repositories,
 gitlab-shell and `.ssh` directory. They talk to one single postgres instance,
-each having its own database.
+each having its own database and they use the same Redis server database.
 
 To run GitLab EE effectively you will need a license key. In order to obtain
 one, send an e-mail to `sales@gitlab.com` describing your purpose of
 developing on EE.
 
-## Update gitlab and gitlab-shell repositories
+## Update GitLab, gitlab-shell and gitlab-workhorse
 
-When working on a new feature, always check that your `gitlab` repository is up
-to date with the upstream master branch.
+When working on a new feature, always check that your GitLab repository is
+up to date with the upstream master branch.
+
+If there are changes in your local repositories or/and a different branch than
+master is checked out, the update commands will stash any uncommitted changes
+and change to master branch before updating the remote repositories.
+
+The sections below describe how to use the `make` commands to update GitLab. If
+you don't want to use the Makefile, the steps you need to manually perform are:
+
+1. Fetch the latest code of GitLab and gitlab-shell
+1. Execute `bundle` to install/update any new gems
+1. Execute `bundle exec rake db:migrate` to run any database migrations
+
+### Update GitLab CE
 
 In order to fetch the latest code, first make sure that `foreman` for
 postgres is running (needed for db migration) and then run:
 
 ```
-make update
+make ce/update
 ```
 
-This will update both `gitlab` and `gitlab-shell` and run any possible
-migrations. You can also update them separately by running `make gitlab-update`
-and `make gitlab-shell-update` respectively.
+This will update both GitLab CE and `gitlab-shell` and run any possible
+migrations. You can also update them separately by running
+`make ce/gitlab-update` and `make ce/gitlab-shell-update` respectively.
 
-If there are changes in the aformentioned local repositories or/and a different
-branch than master is checked out, the `make update` commands will stash any
-uncommitted changes and change to master branch prior to updating the remote
-repositories.
+### Update GitLab EE
+
+If you are developing on GitLab EE, you can update GitLab EE and its gitlab-shell
+with:
+
+```bash
+make ee/update
+```
+
+This will update both GitLab CE and `gitlab-shell` and run any possible
+migrations. You can also update them separately by running
+`make ce/gitlab-update` and `make ce/gitlab-shell-update` respectively.
+
+### Update gitlab-workhorse
+
+To update gitlab-workhorse, run:
+
+```bash
+make gitlab-workhorse-update
+```
+
+### Update all
+
+To update GitLab CE, GitLab EE, their gitlab-shells and gitlab workhorse in one
+go, run:
+
+```bash
+make update
+```
 
 ## Update configuration files created by gitlab-development-kit
 

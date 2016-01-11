@@ -10,6 +10,7 @@ all: ce ee gitlab-workhorse-setup support-setup
 
 #-------------------------------
 # Set up the GitLab CE Rails app
+#-------------------------------
 
 ce: ce/gitlab-setup ce/gitlab-shell-setup
 
@@ -41,8 +42,6 @@ ce/gitlab/config/resque.yml:
 ce/gitlab/.bundle:
 	cd ${gitlab_development_root}/ce/gitlab && bundle install --without mysql production --jobs 4
 
-# Set up gitlab-shell
-
 ce/gitlab-shell-setup: ce/gitlab-shell/.git ce/gitlab-shell/config.yml ce/gitlab-shell/.bundle
 
 ce/gitlab-shell/.git:
@@ -60,6 +59,7 @@ ce/gitlab-shell/.bundle:
 
 #-------------------------------
 # Set up the GitLab EE Rails app
+#-------------------------------
 
 ee: ee/gitlab-setup ee/gitlab-shell-setup
 
@@ -91,8 +91,6 @@ ee/gitlab/config/resque.yml:
 ee/gitlab/.bundle:
 	cd ${gitlab_development_root}/ee/gitlab && bundle install --without mysql production --jobs 4
 
-# Set up gitlab-shell
-
 ee/gitlab-shell-setup: ee/gitlab-shell/.git ee/gitlab-shell/config.yml ee/gitlab-shell/.bundle
 
 ee/gitlab-shell/.git:
@@ -108,25 +106,17 @@ ee/gitlab-shell/config.yml:
 ee/gitlab-shell/.bundle:
 	cd ${gitlab_development_root}/ee/gitlab-shell && bundle install --without production --jobs 4
 
-#-------------------------------
-# Set up gitlab-runner
+# ------------------------------------------------
+# Update gitlab, gitlab-shell and gitlab-workhorse
+# ------------------------------------------------
 
-gitlab-runner-setup: gitlab-runner/.git gitlab-runner/.bundle
+update: ce/update ee/update gitlab-workhorse-update
 
-gitlab-runner/.git:
-	git clone ${gitlab_runner_repo} gitlab-runner
+ce/update: ce/gitlab-update ce/gitlab-shell-update
 
-gitlab-runner/.bundle:
-	cd ${gitlab_development_root}/gitlab-runner && bundle install --jobs 4
+ee/update: ee/gitlab-update ee/gitlab-shell-update
 
-gitlab-runner-clean:
-	rm -rf gitlab-runner
-
-# Update gitlab, gitlab-shell and gitlab-runner
-
-update: ce/gitlab-update ce/gitlab-shell-update gitlab-runner-update gitlab-workhorse-update
-
-ce/gitlab-update: gitlab/.git/pull
+ce/gitlab-update: ce/gitlab/.git/pull
 	cd ${gitlab_development_root}/ce/gitlab && \
 	bundle install --without mysql production --jobs 4 && \
 	bundle exec rake db:migrate
@@ -134,10 +124,6 @@ ce/gitlab-update: gitlab/.git/pull
 ce/gitlab-shell-update: ce/gitlab-shell/.git/pull
 	cd ${gitlab_development_root}/ce/gitlab-shell && \
 	bundle install --without production --jobs 4
-
-gitlab-runner-update: gitlab-runner/.git/pull
-	cd ${gitlab_development_root}/gitlab-runner && \
-	bundle install
 
 ce/gitlab/.git/pull:
 	cd ${gitlab_development_root}/ce/gitlab && \
@@ -150,10 +136,51 @@ ce/gitlab-shell/.git/pull:
 		git stash && git checkout master && \
 		git pull --ff-only
 
+ee/gitlab-update: ce/gitlab/.git/pull
+	cd ${gitlab_development_root}/ee/gitlab && \
+	bundle install --without mysql production --jobs 4 && \
+	bundle exec rake db:migrate
+
+ee/gitlab-shell-update: ce/gitlab-shell/.git/pull
+	cd ${gitlab_development_root}/ee/gitlab-shell && \
+	bundle install --without production --jobs 4
+
+ee/gitlab/.git/pull:
+	cd ${gitlab_development_root}/ee/gitlab && \
+		git checkout -- Gemfile.lock db/schema.rb && \
+		git stash && git checkout master && \
+		git pull --ff-only
+
+ee/gitlab-shell/.git/pull:
+	cd ${gitlab_development_root}/ee/gitlab-shell && \
+		git stash && git checkout master && \
+		git pull --ff-only
+
+#---------------------
+# Set up gitlab-runner
+#---------------------
+
+gitlab-runner-setup: gitlab-runner/.git gitlab-runner/.bundle
+
+gitlab-runner/.git:
+	git clone ${gitlab_runner_repo} gitlab-runner
+
+gitlab-runner/.bundle:
+	cd ${gitlab_development_root}/gitlab-runner && bundle install --jobs 4
+
+gitlab-runner-clean:
+	rm -rf gitlab-runner
+
+gitlab-runner-update: gitlab-runner/.git/pull
+	cd ${gitlab_development_root}/gitlab-runner && \
+	bundle install
+
 gitlab-runner/.git/pull:
 	cd ${gitlab_development_root}/gitlab-runner && git pull --ff-only
 
+# --------------------------
 # Set up supporting services
+# --------------------------
 
 support-setup: Procfile redis postgresql .bundle
 	@echo ""
