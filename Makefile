@@ -6,7 +6,7 @@ gitlab_workhorse_repo = https://gitlab.com/gitlab-org/gitlab-workhorse.git
 gitlab_development_root = $(shell pwd)
 postgres_bin_dir = $(shell pg_config --bindir)
 
-all: gitlab-ce gitlab-ee gitlab-workhorse-setup support-setup
+all: gitlab-ce gitlab-ee gitlab-shell gitlab-workhorse-setup support-setup
 
 #-------------------------------
 # Set up the GitLab CE Rails app
@@ -40,28 +40,11 @@ gitlab-ce/config/resque.yml:
 gitlab-ce/.bundle:
 	cd ${gitlab_development_root}/ce/gitlab && bundle install --without mysql production --jobs 4
 
-ce/gitlab-shell-setup: ce/gitlab-shell/.git ce/gitlab-shell/config.yml ce/gitlab-shell/.bundle
-
-ce/gitlab-shell/.git:
-	git clone ${gitlab_shell_repo} ce/gitlab-shell
-
-ce/gitlab-shell/config.yml:
-	sed -e "s|/home/git|${gitlab_development_root}/ce|"\
-	  -e "s|:8080/|:3000|"\
-	  -e "s|/usr/bin/redis-cli|$(shell which redis-cli)|"\
-	  -e "s|^  socket: .*|  socket: ${gitlab_development_root}/redis/redis.socket|"\
-	  ce/gitlab-shell/config.yml.example > ce/gitlab-shell/config.yml
-
-ce/gitlab-shell/.bundle:
-	cd ${gitlab_development_root}/ce/gitlab-shell && bundle install --without production --jobs 4
-
 #-------------------------------
 # Set up the GitLab EE Rails app
 #-------------------------------
 
-gitlab-ee: gitlab-ee/setup gitlab-ee/shell-setup
-
-gitlab-ee/setup: gitlab-ee/.git ee/gitlab-config gitlab-ee/.bundle
+gitlab-ee: gitlab-ee/.git ee/gitlab-config gitlab-ee/.bundle
 
 gitlab-ee/.git:
 	git clone ${gitlab_ee_repo} gitlab-ee
@@ -89,20 +72,23 @@ gitlab-ee/config/resque.yml:
 gitlab-ee/.bundle:
 	cd ${gitlab_development_root}/ee/gitlab && bundle install --without mysql production --jobs 4
 
-gitlab-ee/shell-setup: gitlab-ee/shell/.git gitlab-ee/shell/config.yml gitlab-ee/shell/.bundle
+# -------------------------
+# Setup shared GitLab Shell
+# -------------------------
+gitlab-shell: gitlab-shell/.git gitlab-shell/config.yml gitlab-shell/.bundle
 
-gitlab-ee/shell/.git:
-	git clone ${gitlab_shell_repo} gitlab-ee/gitlab-shell
+gitlab-shell/.git:
+	git clone ${gitlab_shell_repo} gitlab-shell
 
-gitlab-ee/shell/config.yml:
-	sed -e "s|/home/git|${gitlab_development_root}/ee|"\
+gitlab-shell/config.yml:
+	sed -e "s|/home/git|${gitlab_development_root}/gitalb-ce|"\
 	  -e "s|:8080/|:3000|"\
 	  -e "s|/usr/bin/redis-cli|$(shell which redis-cli)|"\
 	  -e "s|^  socket: .*|  socket: ${gitlab_development_root}/redis/redis.socket|"\
-	  gitlab-ee/shell/config.yml.example > gitlab-ee/gitlab-shell/config.yml
+	  gitlab-shell/config.yml.example > gitlab-shell/config.yml
 
-gitlab-ee/shell/.bundle:
-	cd ${gitlab_development_root}/gitlab-ee/gitlab-shell && bundle install --without production --jobs 4
+gitlab-shell/.bundle:
+	cd ${gitlab_development_root}/gitlab-shell && bundle install --without production --jobs 4
 
 # ------------------------------------------------
 # Update gitlab, gitlab-shell and gitlab-workhorse
