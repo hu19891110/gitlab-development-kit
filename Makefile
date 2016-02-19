@@ -6,40 +6,38 @@ gitlab_workhorse_repo = https://gitlab.com/gitlab-org/gitlab-workhorse.git
 gitlab_development_root = $(shell pwd)
 postgres_bin_dir = $(shell pg_config --bindir)
 
-all: ce ee gitlab-workhorse-setup support-setup
+all: gitlab-ce gitlab-ee gitlab-workhorse-setup support-setup
 
 #-------------------------------
 # Set up the GitLab CE Rails app
 #-------------------------------
 
-ce: ce/gitlab-setup ce/gitlab-shell-setup
+gitlab-ce: gitlab-ce/.git gitlab-ce/config gitlab-ce/.bundle
 
-ce/gitlab-setup: ce/gitlab/.git ce/gitlab-config ce/gitlab/.bundle
+gitlab-ce/.git:
+	git clone ${gitlab_ce_repo} gitlab-ce
 
-ce/gitlab/.git:
-	git clone ${gitlab_ce_repo} ce/gitlab
+gitlab-ce/config: gitlab-ce/config/gitlab.yml gitlab-ce/config/database.yml gitlab-ce/config/unicorn.rb gitlab-ce/config/resque.yml
 
-ce/gitlab-config: ce/gitlab/config/gitlab.yml ce/gitlab/config/database.yml ce/gitlab/config/unicorn.rb ce/gitlab/config/resque.yml
-
-ce/gitlab/config/gitlab.yml:
+gitlab-ce/config/gitlab.yml:
 	sed -e "s|/home/git|${gitlab_development_root}/ce|"\
-	 ce/gitlab/config/gitlab.yml.example > ce/gitlab/config/gitlab.yml
-	support/edit-gitlab.yml ce/gitlab/config/gitlab.yml
+	 gitlab-ce/config/gitlab.yml.example > gitlab-ce/config/gitlab.yml
+	support/edit-gitlab.yml gitlab-ce/config/gitlab.yml
 
-ce/gitlab/config/database.yml:
+gitlab-ce/config/database.yml:
 	sed -e "s|/home/git|${gitlab_development_root}|" \
 			-e "s|gitlabhq_|gitlabhq_ce_|g" \
-			database.yml.example > ce/gitlab/config/database.yml
+			database.yml.example > gitlab-ce/config/database.yml
 
-ce/gitlab/config/unicorn.rb:
-	cp ce/gitlab/config/unicorn.rb{.example.development,}
+gitlab-ce/config/unicorn.rb:
+	cp gitlab-ce/config/unicorn.rb{.example.development,}
 	echo "listen '${gitlab_development_root}/gitlab.socket'" >> $@
 	echo "listen '127.0.0.1:8080'" >> $@
 
-ce/gitlab/config/resque.yml:
+gitlab-ce/config/resque.yml:
 	sed "s|/home/git|${gitlab_development_root}|" redis/resque.yml.example > $@
 
-ce/gitlab/.bundle:
+gitlab-ce/.bundle:
 	cd ${gitlab_development_root}/ce/gitlab && bundle install --without mysql production --jobs 4
 
 ce/gitlab-shell-setup: ce/gitlab-shell/.git ce/gitlab-shell/config.yml ce/gitlab-shell/.bundle
@@ -61,50 +59,50 @@ ce/gitlab-shell/.bundle:
 # Set up the GitLab EE Rails app
 #-------------------------------
 
-ee: ee/gitlab-setup ee/gitlab-shell-setup
+gitlab-ee: gitlab-ee/setup gitlab-ee/shell-setup
 
-ee/gitlab-setup: ee/gitlab/.git ee/gitlab-config ee/gitlab/.bundle
+gitlab-ee/setup: gitlab-ee/.git ee/gitlab-config gitlab-ee/.bundle
 
-ee/gitlab/.git:
-	git clone ${gitlab_ee_repo} ee/gitlab
+gitlab-ee/.git:
+	git clone ${gitlab_ee_repo} gitlab-ee
 
-ee/gitlab-config: ee/gitlab/config/gitlab.yml ee/gitlab/config/database.yml ee/gitlab/config/unicorn.rb ee/gitlab/config/resque.yml
+gitlab-ee/config: gitlab-ee/config/gitlab.yml gitlab-ee/config/database.yml gitlab-ee/config/unicorn.rb gitlab-ee/config/resque.yml
 
-ee/gitlab/config/gitlab.yml:
+gitlab-ee/config/gitlab.yml:
 	sed -e "s|/home/git|${gitlab_development_root}/ee|"\
-	 ee/gitlab/config/gitlab.yml.example > ee/gitlab/config/gitlab.yml
-	support/edit-gitlab.yml ee/gitlab/config/gitlab.yml
+	 gitlab-ee/config/gitlab.yml.example > gitlab-ee/config/gitlab.yml
+	support/edit-gitlab.yml gitlab-ee/config/gitlab.yml
 
-ee/gitlab/config/database.yml:
+gitlab-ee/config/database.yml:
 	sed -e "s|/home/git|${gitlab_development_root}|" \
 			-e "s|gitlabhq_|gitlabhq_ee_|g" \
-			database.yml.example > ee/gitlab/config/database.yml
+			database.yml.example > gitlab-ee/config/database.yml
 
-ee/gitlab/config/unicorn.rb:
-	cp ee/gitlab/config/unicorn.rb{.example.development,}
+gitlab-ee/config/unicorn.rb:
+	cp gitlab-ee/config/unicorn.rb{.example.development,}
 	echo "listen '${gitlab_development_root}/gitlab.socket'" >> $@
 	echo "listen '127.0.0.1:8080'" >> $@
 
-ee/gitlab/config/resque.yml:
+gitlab-ee/config/resque.yml:
 	sed "s|/home/git|${gitlab_development_root}|" redis/resque.yml.example > $@
 
-ee/gitlab/.bundle:
+gitlab-ee/.bundle:
 	cd ${gitlab_development_root}/ee/gitlab && bundle install --without mysql production --jobs 4
 
-ee/gitlab-shell-setup: ee/gitlab-shell/.git ee/gitlab-shell/config.yml ee/gitlab-shell/.bundle
+gitlab-ee/shell-setup: gitlab-ee/shell/.git gitlab-ee/shell/config.yml gitlab-ee/shell/.bundle
 
-ee/gitlab-shell/.git:
-	git clone ${gitlab_shell_repo} ee/gitlab-shell
+gitlab-ee/shell/.git:
+	git clone ${gitlab_shell_repo} gitlab-ee/gitlab-shell
 
-ee/gitlab-shell/config.yml:
+gitlab-ee/shell/config.yml:
 	sed -e "s|/home/git|${gitlab_development_root}/ee|"\
 	  -e "s|:8080/|:3000|"\
 	  -e "s|/usr/bin/redis-cli|$(shell which redis-cli)|"\
 	  -e "s|^  socket: .*|  socket: ${gitlab_development_root}/redis/redis.socket|"\
-	  ee/gitlab-shell/config.yml.example > ee/gitlab-shell/config.yml
+	  gitlab-ee/shell/config.yml.example > gitlab-ee/gitlab-shell/config.yml
 
-ee/gitlab-shell/.bundle:
-	cd ${gitlab_development_root}/ee/gitlab-shell && bundle install --without production --jobs 4
+gitlab-ee/shell/.bundle:
+	cd ${gitlab_development_root}/gitlab-ee/gitlab-shell && bundle install --without production --jobs 4
 
 # ------------------------------------------------
 # Update gitlab, gitlab-shell and gitlab-workhorse
@@ -116,7 +114,7 @@ ce/update: ce/gitlab-update ce/gitlab-shell-update
 
 ee/update: ee/gitlab-update ee/gitlab-shell-update
 
-ce/gitlab-update: ce/gitlab/.git/pull
+ce/gitlab-update: gitlab-ce/.git/pull
 	cd ${gitlab_development_root}/ce/gitlab && \
 	bundle install --without mysql production --jobs 4 && \
 	bundle exec rake db:migrate
@@ -125,7 +123,7 @@ ce/gitlab-shell-update: ce/gitlab-shell/.git/pull
 	cd ${gitlab_development_root}/ce/gitlab-shell && \
 	bundle install --without production --jobs 4
 
-ce/gitlab/.git/pull:
+gitlab-ce/.git/pull:
 	cd ${gitlab_development_root}/ce/gitlab && \
 		git checkout -- Gemfile.lock db/schema.rb && \
 		git stash && git checkout master && \
@@ -136,7 +134,7 @@ ce/gitlab-shell/.git/pull:
 		git stash && git checkout master && \
 		git pull --ff-only
 
-ee/gitlab-update: ce/gitlab/.git/pull
+ee/gitlab-update: gitlab-ce/.git/pull
 	cd ${gitlab_development_root}/ee/gitlab && \
 	bundle install --without mysql production --jobs 4 && \
 	bundle exec rake db:migrate
@@ -145,7 +143,7 @@ ee/gitlab-shell-update: ce/gitlab-shell/.git/pull
 	cd ${gitlab_development_root}/ee/gitlab-shell && \
 	bundle install --without production --jobs 4
 
-ee/gitlab/.git/pull:
+gitlab-ee/.git/pull:
 	cd ${gitlab_development_root}/ee/gitlab && \
 		git checkout -- Gemfile.lock db/schema.rb && \
 		git stash && git checkout master && \
@@ -192,7 +190,7 @@ support-setup: Procfile redis postgresql .bundle
 
 Procfile:
 	sed -e "s|/home/git|${gitlab_development_root}|g"\
-			-e "s|gitlab/public|ce/gitlab/public|"\
+			-e "s|gitlab/public|gitlab-ce/public|"\
 	  	-e "s|postgres |${postgres_bin_dir}/postgres |"\
 	  $@.example > $@
 
