@@ -1,11 +1,9 @@
-ce/
-ee/
+gitlab-ce/
+gitlab-ee/
 gitlab-shell/
 .ssh/
 gitlab-satellites/
 repositories/
-gitlab/
-gitlab-ci/
 gitlab-runner/
 Procfile
 postgresql/data

@@ -20,7 +20,7 @@ gitlab-ce/.git:
 gitlab-ce/config: gitlab-ce/config/gitlab.yml gitlab-ce/config/database.yml gitlab-ce/config/unicorn.rb gitlab-ce/config/resque.yml
 
 gitlab-ce/config/gitlab.yml:
-	sed -e "s|/home/git|${gitlab_development_root}/ce|"\
+	sed -e "s|/home/git|${gitlab_development_root}|"\
 	 gitlab-ce/config/gitlab.yml.example > gitlab-ce/config/gitlab.yml
 	support/edit-gitlab.yml gitlab-ce/config/gitlab.yml
 
@@ -38,13 +38,13 @@ gitlab-ce/config/resque.yml:
 	sed "s|/home/git|${gitlab_development_root}|" redis/resque.yml.example > $@
 
 gitlab-ce/.bundle:
-	cd ${gitlab_development_root}/ce/gitlab && bundle install --without mysql production --jobs 4
+	cd ${gitlab_development_root}/gitlab-ce && bundle install --without mysql production --jobs 4
 
 #-------------------------------
 # Set up the GitLab EE Rails app
 #-------------------------------
 
-gitlab-ee: gitlab-ee/.git ee/gitlab-config gitlab-ee/.bundle
+gitlab-ee: gitlab-ee/.git gitlab-ee/config gitlab-ee/.bundle
 
 gitlab-ee/.git:
 	git clone ${gitlab_ee_repo} gitlab-ee
@@ -52,7 +52,7 @@ gitlab-ee/.git:
 gitlab-ee/config: gitlab-ee/config/gitlab.yml gitlab-ee/config/database.yml gitlab-ee/config/unicorn.rb gitlab-ee/config/resque.yml
 
 gitlab-ee/config/gitlab.yml:
-	sed -e "s|/home/git|${gitlab_development_root}/ee|"\
+	sed -e "s|/home/git|${gitlab_development_root}|"\
 	 gitlab-ee/config/gitlab.yml.example > gitlab-ee/config/gitlab.yml
 	support/edit-gitlab.yml gitlab-ee/config/gitlab.yml
 
@@ -70,7 +70,7 @@ gitlab-ee/config/resque.yml:
 	sed "s|/home/git|${gitlab_development_root}|" redis/resque.yml.example > $@
 
 gitlab-ee/.bundle:
-	cd ${gitlab_development_root}/ee/gitlab && bundle install --without mysql production --jobs 4
+	cd ${gitlab_development_root}/gitlab-ee && bundle install --without mysql production --jobs 4
 
 # -------------------------
 # Setup shared GitLab Shell
@@ -81,7 +81,7 @@ gitlab-shell/.git:
 	git clone ${gitlab_shell_repo} gitlab-shell
 
 gitlab-shell/config.yml:
-	sed -e "s|/home/git|${gitlab_development_root}/gitalb-ce|"\
+	sed -e "s|/home/git|${gitlab_development_root}|"\
 	  -e "s|:8080/|:3000|"\
 	  -e "s|/usr/bin/redis-cli|$(shell which redis-cli)|"\
 	  -e "s|^  socket: .*|  socket: ${gitlab_development_root}/redis/redis.socket|"\
