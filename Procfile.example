@@ -1,4 +1,7 @@
 redis: redis-server /home/git/redis/redis.conf
 postgresql: postgres -D /home/git/postgresql/data -k /home/git/postgresql -h ''
+#postgresql-replica: postgres -D /home/git/postgresql-replica/data -k /home/git/postgresql-replica -h ''
 #openldap: cd gitlab-openldap && libexec/slapd -F slapd.d -d2 -h "ldap://127.0.0.1:3890"
-gitlab-workhorse: /home/git/gitlab-workhorse/gitlab-workhorse -authSocket /home/git/gitlab.socket -listenAddr localhost:3000 -documentRoot /home/git/gitlab/public -developmentMode
+gitlab-workhorse: PATH=/home/git/gitlab-workhorse:$PATH gitlab-workhorse -authSocket /home/git/gitlab.socket -listenAddr localhost:3000 -documentRoot /home/git/gitlab/public -developmentMode
+rails-web: cd gitlab && BUNDLE_GEMFILE=Gemfile RAILS_ENV=development bin/web start_foreground
+rails-background-jobs: cd gitlab && BUNDLE_GEMFILE=Gemfile RAILS_ENV=development bin/background_jobs start_foreground

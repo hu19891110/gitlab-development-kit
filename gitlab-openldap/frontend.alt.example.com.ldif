@@ -15,7 +15,7 @@ objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: admin
 description: LDAP administrator
-# hased value for 'password'
+# hashed value for 'password'
 userPassword: {SSHA}ICMhr6Jxt5bk2awD7HL7GxRTM3BZ1pFI
 
 dn: ou=people,dc=example-alt,dc=com
@@ -37,7 +37,7 @@ cn: bob Doe
 displayName: bob Doe
 uidNumber: 1000
 gidNumber: 10000
-# hased value for 'password'
+# hashed value for 'password'
 userPassword: {SSHA}qqLFjamdd1cru4RV815+FiSxh/54rfbd
 gecos: bob Doe
 loginShell: /bin/bash
@@ -69,7 +69,7 @@ cn: alice Jane
 displayName: alice Jane
 uidNumber: 1001
 gidNumber: 10001
-# hased value for 'password'
+# hashed value for 'password'
 userPassword: {SSHA}qqLFjamdd1cru4RV815+FiSxh/54rfbd
 mail: alice.jane@example.com
 gecos: alice

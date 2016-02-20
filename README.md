@@ -78,7 +78,7 @@ please see [the instuctions for our (experimental) Vagrant with Docker setup](#v
 If you do not have the dependencies below you will experience strange errors during installation.
 
 1. A non-root unix user, this can be your normal user but **DO NOT** run the installation as a root user
-1. Ruby 2.1.7 installed with a Ruby version manager (RVM, rbenv, chruby, etc.), **DO NOT** use the system Ruby
+1. Ruby 2.2.4 or newer installed with a Ruby version manager (RVM, rbenv, chruby, etc.), **DO NOT** use the system Ruby
 1. Bundler, which you can install with `gem install bundler`
 
 ##### OS X 10.9 (Mavericks), 10.10 (Yosemite), 10.11 (El Capitan)
@@ -88,9 +88,9 @@ Please read [the prerequisites for all platforms](#prerequisites-for-all-platfor
 ```
 brew tap homebrew/dupes
 brew tap homebrew/versions
-brew install git redis postgresql phantomjs198 libiconv icu4c pkg-config cmake nodejs go openssl
-brew link phantomjs198
-bundle config build.nokogiri --with-iconv-dir=/usr/local/opt/libiconv
+brew install git redis postgresql libiconv icu4c pkg-config cmake nodejs go openssl node npm
+bundle config build.eventmachine --with-cppflags=-I/usr/local/opt/openssl/include
+npm install phantomjs@1.9.8 -g
 ```
 
 ##### Ubuntu
@@ -98,7 +98,11 @@ bundle config build.nokogiri --with-iconv-dir=/usr/local/opt/libiconv
 Please read [the prerequisites for all platforms](#prerequisites-for-all-platforms).
 
 ```
-sudo apt-add-repository -y ppa:ubuntu-lxc/lxd-stable && sudo apt-get update
+# This PPA contains an up-to-date version of Go
+sudo apt-add-repository -y ppa:ubuntu-lxc/lxd-stable
+# This PPA gives us Redis 2.8 or newer
+sudo apt-add-repository -y ppa:chris-lea/redis-server
+sudo apt-get update
 sudo apt-get install git postgresql libpq-dev phantomjs redis-server libicu-dev cmake g++ nodejs libkrb5-dev golang ed pkg-config
 ```
 
@@ -118,6 +122,8 @@ Please read [the prerequisites for all platforms](#prerequisites-for-all-platfor
 sudo apt-get install postgresql libpq-dev redis-server libicu-dev cmake g++ nodejs libkrb5-dev ed pkg-config
 ```
 
+If you are running Debian Stretch or newer you will need to install Go compiler as well: `sudo apt-get install golang`
+
 You need to install phantomjs manually
 
 ```
@@ -130,6 +136,7 @@ sudo ln -s /usr/local/share/$PHANTOM_JS/bin/phantomjs /usr/local/bin
 phantomjs --version
 ```
 
+
 ##### Fedora
 ```
 sudo dnf install postgresql libpqxx-devel postgresql-libs redis linicu-devel nodejs git ed cmaker rpm-build lib-pq gcc-c++ krb5-devel
@@ -138,8 +145,6 @@ sudo dnf install postgresql libpqxx-devel postgresql-libs redis linicu-devel nod
 Install `phantomJS` manually, or download it and put in your $PATH. For instructions, follow the [Debian guide on phantomJS](#Debian).
 
 ##### RedHat
-You also need to install [Go](https://golang.org/dl) because the
-Go version included in most Ubuntu versions is too old for GitLab.
 
 ##### CentOS
 
@@ -155,8 +160,8 @@ sudo yum install postgresql93-server libicu-devel cmake gcc-c++ redis ed fontcon
 sudo gpg2 --keyserver hkp://keys.gnupg.net --recv-keys D39DC0E3
 sudo curl -sSL https://get.rvm.io | bash -s stable
 sudo source /etc/profile.d/rvm.sh
-sudo rvm install 2.1
-sudo rvm use 2.1
+sudo rvm install 2.2
+sudo rvm use 2.2
 #Ensure your user is in rvm group
 sudo usermod -a -G rvm <username>
 #add iptables exceptions, or sudo service stop iptables
@@ -168,6 +173,8 @@ Git 1.7.1-3 is the latest supported version for CentOS 6.5. Spinach tests will
 fail due to a higher version requirement by GitLab.
 You can follow the instructions found [here](https://gitlab.com/gitlab-org/gitlab-recipes/tree/master/install/centos#add-puias-computational-repository)
 to install a newer binary version of git.
+
+You may need to install Redis 2.8 or newer manually.
 
 ##### Other platforms
 
@@ -197,6 +204,8 @@ To avoid usage of slow VirtualBox shared folders we use NFS here.
   a. Vagrant will download an OS image, bring it up, and install all the prerequisites.
 5. Run `vagrant ssh` to SSH into the box.
 6. Continue setup at *[Installation](#installation)* below.
+7.  After the installation is done, edit the 'gitlab-workhorse' line in
+    your Procfile and change `localhost:3000` to `0.0.0.0:3000`.
 
 ##### Development details
 
@@ -238,6 +247,8 @@ you will have to run the entire docker hypervisor in a VM
 2. Run `vagrant up --provider=docker` in this directory. Vagrant will build a docker image and start the container
 3. Run `vagrant ssh` to SSH into the container.
 5. Continue setup at *[Installation](#installation)* below.
+6.  After the installation is done, edit the 'gitlab-workhorse' line in
+    your Procfile and change `localhost:3000` to `0.0.0.0:3000`.
 
 See [development details](#development-details) and [exit](#exit) of Vagrant-Virtulabox setup, they apply here too.
 
@@ -260,6 +271,9 @@ make
 Alternatively, you can clone straight from your forked repositories or GitLab EE.
 
 ```
+# Install dependencies
+bundle install
+
 # Clone your own forked repositories
 make gitlab_ce_repo=git@gitlab.com:example/gitlab-ce.git gitlab_shell_repo=git@gitlab.com:example/gitlab-shell.git
 ```
@@ -274,6 +288,8 @@ make ce gitlab-workhorse support-setup
 ```
 
 Replace `ce` with `ee` to download and install GitLab EE.
+
+If you are going to work on Gitlab Geo, you will need [PostgreSQL replication](#postgresql-replication) setup before the "Post-installation" instructions.
 
 ## Post-installation
 
@@ -293,6 +309,15 @@ and setup GitLab:
 ```bash
 cd ce/gitlab && bundle install && bundle exec rake db:create dev:setup
 ```
+## Post-installation
+
+Start GitLab and all required services:
+
+    bundle exec foreman start
+
+To access GitLab you may now go to http://localhost:3000 in your
+browser. The development login credentials are `root` and `5iveL!fe`.
+>>>>>>> master
 
 Finally, start the main GitLab Rails application while still in the `ce/gitlab/`
 subdirectory:
@@ -327,7 +352,6 @@ itself.
 First start Postgres and Redis.
 
 ```
-# terminal window 1
 # current directory: gitlab-development-kit
 bundle exec foreman start
 ```
@@ -438,6 +462,35 @@ remove an individual file (e.g. `rm Procfile`) and rebuild it by
 running `make`. If you want to rebuild _all_ configuration files
 created by the Makefile, run `make clean-config all`.
 
+## PostgreSQL replication
+
+For Gitlab Geo, you will need a master/slave database replication defined.
+There are a few extra steps to follow:
+
+You must start with a clean postgres setup, (jump to next if you are installing
+everything from scratch):
+
+```
+rm -rf postgresql
+make postgresql
+```
+
+Initialize a slave database and setup replication:
+
+```
+# terminal window 1:
+make postgresql-replication/cluster
+foreman start postgresql
+
+# terminal window 2:
+make postgresql-replication/role
+make postgresql-replication/backup
+
+# go back to terminal window 1 and stop foreman by hitting "CTRL-C"
+```
+
+Follow [Post-installation](#post-installation) instructions.
+
 ## OpenLDAP
 
 To run the OpenLDAP installation included in the GitLab development kit do the following:
@@ -478,6 +531,15 @@ ldap:
 ```
 
 The second database is optional, and will only work with Gitlab-EE.
+
+The following users are added to the LDAP server:
+
+| uid      | Password | DN                                          |
+| -------- | -------- | -------                                     |
+| john     | password | `uid=john,ou=people,dc=example,dc=com`      |
+| mary     | password | `uid=mary,ou=people,dc=example,dc=com`      |
+| bob      | password | `uid=bob,ou=people,dc=example-alt,dc=com`   |
+| alice    | password | `uid=alice,ou=people,dc=example-alt,dc=com` |
 
 ## NFS
 
@@ -529,7 +591,7 @@ is Homebrew on OS X, which encourages frequent updates (`brew update && brew
 upgrade`) which may break binary compatibility.
 
 ```
-bundle exec rake db:create gitlab:setup
+bundle exec rake db:create dev:setup
 rake aborted!
 LoadError: dlopen(/Users/janedoe/.rbenv/versions/2.1.2/lib/ruby/gems/2.1.0/extensions/x86_64-darwin-13/2.1.0-static/charlock_holmes-0.6.9.4/charlock_holmes/charlock_holmes.bundle, 9): Library not loaded: /usr/local/opt/icu4c/lib/libicui18n.52.1.dylib
   Referenced from: /Users/janedoe/.rbenv/versions/2.1.2/lib/ruby/gems/2.1.0/extensions/x86_64-darwin-13/2.1.0-static/charlock_holmes-0.6.9.4/charlock_holmes/charlock_holmes.bundle
@@ -589,6 +651,16 @@ bundle config build.eventmachine --with-cppflags=-I/usr/local/opt/openssl/includ
 ```
 
 and then do `bundle install` once again.
+
+### 'Invalid reference name' when creating a new tag
+
+Make sure that `git` is configured correctly on your development
+machine (where GDK runs).
+
+```
+git checkout -b can-I-commit
+git commit --allow-empty -m 'I can commit'
+```
 
 ### Other problems
 

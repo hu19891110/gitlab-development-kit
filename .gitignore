@@ -5,9 +5,12 @@ gitlab-shell/
 gitlab-satellites/
 repositories/
 gitlab-runner/
+gitlab-ci-multi-runner/
 Procfile
 postgresql/data
 postgresql/.s.*
+postgresql-replica/data
+postgresql-replica/.s.*
 redis/*.conf
 .bundle/
 gitlab-openldap/bin/
@@ -21,3 +24,4 @@ gitlab-openldap/sbin/
 gitlab-openldap/share/
 .vagrant/
 gitlab-workhorse/
+.vagrant_enabled

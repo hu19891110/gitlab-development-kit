@@ -2,7 +2,7 @@ FROM ubuntu:trusty
 MAINTAINER Gitlab.com
 
 RUN apt-get update ;\
-    apt-get -y install openssh-server supervisor ;\
+    apt-get -y install openssh-server supervisor software-properties-common rsync ;\
     rm -rf /var/lib/apt/lists/* ;\
     mkdir /var/run/sshd
 

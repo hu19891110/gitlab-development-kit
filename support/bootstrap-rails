@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+begin
+  foreman_pid = spawn(*%W(bundle exec foreman start -c all=0,redis=1,postgresql=1))
+  system({'force' => 'yes', 'BOOTSTRAP' => '1'}, *%W(bundle exec rake db:create dev:setup), chdir: 'gitlab')
+ensure
+  Process.kill('TERM', foreman_pid)
+end

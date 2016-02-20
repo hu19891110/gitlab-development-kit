@@ -5,12 +5,18 @@
 # Please see the Vagrant section in the readme for caveats and tips
 # https://gitlab.com/gitlab-org/gitlab-development-kit/tree/master#vagrant
 
+# Write a file so the rest of the code knows we're inside a vm
+require 'fileutils'
+FileUtils.touch('.vagrant_enabled')
+
 Vagrant.require_version ">= 1.6.0"
 VAGRANTFILE_API_VERSION = "2"
 
 def enable_shares(config, nfs)
 	# paths must be listed as shortest to longest per bug: https://github.com/GM-Alex/vagrant-winnfsd/issues/12#issuecomment-78195957
-	config.vm.synced_folder ".", "/vagrant", type: "rsync", rsync__exclude: ['gitlab/', 'gitlab-shell', 'gitlab-runner'], rsync__auto: false
+	config.vm.synced_folder ".", "/vagrant", type: "rsync",
+		rsync__exclude: ['gitlab', 'postgresql', 'gitlab-shell', 'gitlab-runner'],
+		rsync__auto: false
 	config.vm.synced_folder "gitlab/", "/vagrant/gitlab", :create => true, :nfs => nfs
 	config.vm.synced_folder "gitlab-shell/", "/vagrant/gitlab-shell", :create => true, :nfs => nfs
 	config.vm.synced_folder "gitlab-runner/", "/vagrant/gitlab-runner", :create => true, :nfs => nfs
@@ -18,8 +24,8 @@ end
 
 def running_in_admin_mode?
     return false unless Vagrant::Util::Platform.windows?
-    
-    (`reg query HKU\\S-1-5-19 2>&1` =~ /ERROR/).nil? 
+
+    (`reg query HKU\\S-1-5-19 2>&1` =~ /ERROR/).nil?
 end
 
 if Vagrant::Util::Platform.windows? && !running_in_admin_mode?
@@ -50,11 +56,20 @@ $apt_reqs = <<EOT
 apt-add-repository -y ppa:rael-gc/rvm
 apt-add-repository -y ppa:ubuntu-lxc/lxd-stable
 apt-get update
-apt-get -y install git postgresql libpq-dev phantomjs redis-server libicu-dev cmake g++ nodejs libkrb5-dev curl ruby ed golang nginx
+apt-get -y install git postgresql libpq-dev phantomjs redis-server libicu-dev cmake g++ nodejs libkrb5-dev curl ruby ed golang nginx libgmp-dev
 EOT
 
 # CentOS 6 kernel doesn't suppose UID mapping (affects vagrant-lxc mostly).
 $user_setup = <<EOT
+# create a swapfile
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+# enable swap now
+sudo swapon /swapfile
+# and on reboot
+echo '/swapfile   none    swap    sw    0   0' | sudo tee --append /etc/fstab
+
 if [ $(id -u vagrant) != $(stat -c %u /vagrant) ]; then
 	useradd -u $(stat -c %u /vagrant) -m build
 	echo "build ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/build
@@ -72,7 +87,15 @@ sudo ln -s /vagrant /home/vagrant/gitlab-development-kit
 
 # automatically move into the gitlab-development-kit folder, but only add the command
 # if it's not already there
-sudo -u $DEV_USER -i bash -c "grep -q 'cd /home/vagrant/gitlab-development-kit/' /home/vagrant/.bash_profile || echo 'cd /home/vagrant/gitlab-development-kit/' >> /home/vagrant/.bash_profile"
+if [ -f /home/vagrant/.bash_profile ]; then
+	sudo -u $DEV_USER -i bash -c "grep -q 'cd /home/vagrant/gitlab-development-kit/' /home/vagrant/.bash_profile || echo 'cd /home/vagrant/gitlab-development-kit/' >> /home/vagrant/.bash_profile"
+else
+	sudo -u $DEV_USER -i bash -c "touch /home/vagrant/.bash_profile && echo 'cd /home/vagrant/gitlab-development-kit/' >> /home/vagrant/.bash_profile"
+fi
+
+# set git defaults
+sudo -u $DEV_USER -i bash -c "git config --global user.name 'GitLab Development'"
+sudo -u $DEV_USER -i bash -c "git config --global user.email gitlab@local.local"
 EOT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
@@ -121,9 +144,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 			enable_nfs = Vagrant::Util::Platform.platform =~ /darwin/ ? false : true
 			enable_shares(override, enable_nfs)
 		end
-		
-		# use 1/4 of memory or 2 GB, whichever is greatest
-		mem = [mem / 4, 2048].max
+
+		# use 1/4 of memory or 3 GB, whichever is greatest
+		mem = [mem / 4, 3072].max
 
 		# performance tweaks
 		# per https://www.virtualbox.org/manual/ch03.html#settings-processor set cpus to real cores, not hyperthreads

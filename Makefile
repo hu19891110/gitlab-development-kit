@@ -1,10 +1,12 @@
 gitlab_ce_repo = https://gitlab.com/gitlab-org/gitlab-ce.git
 gitlab_ee_repo = https://gitlab.com/gitlab-org/gitlab-ee.git
 gitlab_shell_repo = https://gitlab.com/gitlab-org/gitlab-shell.git
-gitlab_runner_repo = https://gitlab.com/gitlab-org/gitlab-ci-runner.git
 gitlab_workhorse_repo = https://gitlab.com/gitlab-org/gitlab-workhorse.git
 gitlab_development_root = $(shell pwd)
 postgres_bin_dir = $(shell pg_config --bindir)
+postgres_replication_user = gitlab_replication
+postgres_dir = $(realpath ./postgresql)
+postgres_replica_dir = $(realpath ./postgresql-replica)
 
 all: gitlab-ce gitlab-ee gitlab-shell gitlab-workhorse-setup support-setup
 
@@ -82,6 +84,7 @@ gitlab-shell/.git:
 
 gitlab-shell/config.yml:
 	sed -e "s|/home/git|${gitlab_development_root}|"\
+	  -e "s|^gitlab_url:.*|gitlab_url: http+unix://${shell echo ${gitlab_development_root}/gitlab.socket | sed 's|/|%2F|g'}|"\
 	  -e "s|:8080/|:3000|"\
 	  -e "s|/usr/bin/redis-cli|$(shell which redis-cli)|"\
 	  -e "s|^  socket: .*|  socket: ${gitlab_development_root}/redis/redis.socket|"\
@@ -103,6 +106,11 @@ ee/update: ee/gitlab-update ee/gitlab-shell-update
 ce/gitlab-update: gitlab-ce/.git/pull
 	cd ${gitlab_development_root}/ce/gitlab && \
 	bundle install --without mysql production --jobs 4 && \
+	@echo ""
+	@echo "------------------------------------------------------------"
+	@echo "Make sure Postgres is running otherwise db:migrate will fail"
+	@echo "------------------------------------------------------------"
+	@echo ""
 	bundle exec rake db:migrate
 
 ce/gitlab-shell-update: ce/gitlab-shell/.git/pull
@@ -179,16 +187,35 @@ Procfile:
 			-e "s|gitlab/public|gitlab-ce/public|"\
 	  	-e "s|postgres |${postgres_bin_dir}/postgres |"\
 	  $@.example > $@
+	# Listen on external interface if inside a vagrant vm
+	if [ -f .vagrant_enabled ] ; \
+	then \
+		printf ',s/localhost:3000/0.0.0.0:3000/g\nwq\n' | ed $@ ; \
+	fi;
 
 redis: redis/redis.conf
 
 redis/redis.conf:
 	sed "s|/home/git|${gitlab_development_root}|" $@.example > $@
 
-postgresql: postgresql/data/PG_VERSION
+postgresql: postgresql/data
 
-postgresql/data/PG_VERSION:
+postgresql/data:
 	${postgres_bin_dir}/initdb --locale=C -E utf-8 postgresql/data
+	support/bootstrap-rails
+
+postgresql-replication/cluster:
+	${postgres_bin_dir}/initdb --locale=C -E utf-8 postgresql-replica/data
+	cat support/pg_hba.conf.add >> postgresql/data/pg_hba.conf
+
+postgresql-replication/role:
+	${postgres_bin_dir}/psql -h ${postgres_dir} -d postgres -c "CREATE ROLE ${postgres_replication_user} WITH REPLICATION LOGIN;"
+
+postgresql-replication/backup:
+	psql -h ${postgres_dir} -d postgres -c "select pg_start_backup('base backup for streaming rep')"
+	rsync -cva --inplace --exclude="*pg_xlog*" postgresql/data postgresql-replica
+	psql -h ${postgres_dir} -d postgres -c "select pg_stop_backup(), current_timestamp"
+	./support/recovery.conf ${postgres_dir} > postgresql-replica/data/recovery.conf
 
 .bundle:
 	bundle install --jobs 4
