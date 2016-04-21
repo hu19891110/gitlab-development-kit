@@ -1,7 +1,7 @@
 gitlab_repo = https://gitlab.com/gitlab-org/gitlab-ce.git
 gitlab_shell_repo = https://gitlab.com/gitlab-org/gitlab-shell.git
 gitlab_workhorse_repo = https://gitlab.com/gitlab-org/gitlab-workhorse.git
-gitlab_development_root = $(shell pwd)
+gitlab_development_root = $(shell pwd | sed "s/[ \(\)]/\\\&/g")
 postgres_bin_dir = $(shell pg_config --bindir)
 postgres_replication_user = gitlab_replication
 postgres_dir = $(realpath ./postgresql)
