@@ -11,7 +11,7 @@ cert = $3
 EOF
 }
 
-if [ x$# -ne x3 ] ; then
+if [ "$#" -ne 3 ] ; then
   echo "Usage: $0 LISTEN_ADDRESS WORKHORSE_SOCKET CERTIFICATE"
   exit 1
 fi
